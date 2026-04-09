@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TikTok Summarizer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    header h1 span {
+      color: #fe2c55;
+    }
+
+    header p {
+      margin-top: 0.5rem;
+      color: #888;
+      font-size: 0.95rem;
+    }
+
+    .input-section {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.6rem;
+    }
+
+    textarea {
+      width: 100%;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #e8e8e8;
+      font-family: inherit;
+      font-size: 0.95rem;
+      padding: 0.75rem 1rem;
+      resize: vertical;
+      min-height: 90px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    textarea:focus {
+      border-color: #fe2c55;
+    }
+
+    textarea::placeholder {
+      color: #555;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      align-items: center;
+    }
+
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      padding: 0.65rem 1.5rem;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.97); }
+
+    #submitBtn {
+      background: #fe2c55;
+      color: #fff;
+    }
+
+    #submitBtn:hover { opacity: 0.88; }
+    #submitBtn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    #clearBtn {
+      background: #2a2a2a;
+      color: #aaa;
+    }
+
+    #clearBtn:hover { background: #333; }
+
+    #statusMsg {
+      margin-left: auto;
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .results {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .card.loading { border-color: #444; }
+    .card.done    { border-color: #2a2a2a; }
+    .card.error   { border-color: #7f1d1d; }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.9rem 1.25rem;
+      border-bottom: 1px solid #222;
+      background: #161616;
+    }
+
+    .card-url {
+      flex: 1;
+      font-size: 0.78rem;
+      color: #666;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .badge {
+      flex-shrink: 0;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-loading { background: #2a2a2a; color: #888; }
+    .badge-done    { background: #14532d; color: #4ade80; }
+    .badge-error   { background: #7f1d1d; color: #fca5a5; }
+
+    .card-body {
+      padding: 1.25rem;
+    }
+
+    .card-step {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      color: #666;
+    }
+
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid #333;
+      border-top-color: #fe2c55;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+      line-height: 1.3;
+    }
+
+    .card-summary {
+      font-size: 0.9rem;
+      color: #bbb;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .key-points-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #555;
+      margin-bottom: 0.5rem;
+    }
+
+    .key-points {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .key-points li {
+      display: flex;
+      gap: 0.6rem;
+      font-size: 0.88rem;
+      color: #ccc;
+      line-height: 1.5;
+    }
+
+    .key-points li::before {
+      content: "→";
+      color: #fe2c55;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .error-msg {
+      font-size: 0.88rem;
+      color: #fca5a5;
+      line-height: 1.5;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #444;
+      font-size: 0.9rem;
+      padding: 3rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>TikTok <span>Summarizer</span></h1>
+      <p>Paste one or more TikTok links — get AI-generated key points for each.</p>
+    </header>
+
+    <div class="input-section">
+      <label for="urlInput">TikTok URLs</label>
+      <textarea
+        id="urlInput"
+        placeholder="https://www.tiktok.com/@user/video/123&#10;https://www.tiktok.com/@user/video/456&#10;&#10;Or paste comma-separated links on one line."
+      ></textarea>
+      <div class="actions">
+        <button id="submitBtn">Summarize</button>
+        <button id="clearBtn">Clear</button>
+        <span id="statusMsg"></span>
+      </div>
+    </div>
+
+    <div class="results" id="results">
+      <div class="empty-state" id="emptyState">Results will appear here.</div>
+    </div>
+  </div>
+
+  <script>
+    const submitBtn  = document.getElementById("submitBtn");
+    const clearBtn   = document.getElementById("clearBtn");
+    const urlInput   = document.getElementById("urlInput");
+    const resultsEl  = document.getElementById("results");
+    const emptyState = document.getElementById("emptyState");
+    const statusMsg  = document.getElementById("statusMsg");
+
+    const cards = {}; // index -> card element
+
+    function parseUrls(raw) {
+      return raw
+        .split(/[\n,]+/)
+        .map(u => u.trim())
+        .filter(u => u.length > 0);
+    }
+
+    function setStatus(msg) {
+      statusMsg.textContent = msg;
+    }
+
+    function createCard(url, index) {
+      const card = document.createElement("div");
+      card.className = "card loading";
+      card.innerHTML = `
+        <div class="card-header">
+          <span class="card-url" title="${escHtml(url)}">${escHtml(url)}</span>
+          <span class="badge badge-loading" id="badge-${index}">Pending</span>
+        </div>
+        <div class="card-body" id="body-${index}">
+          <div class="card-step">
+            <div class="spinner"></div>
+            <span id="step-${index}">Waiting...</span>
+          </div>
+        </div>`;
+      return card;
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    function updateStep(index, step) {
+      const stepEl = document.getElementById(`step-${index}`);
+      if (stepEl) stepEl.textContent = step;
+    }
+
+    function renderResult(index, data) {
+      const card = cards[index];
+      if (!card) return;
+
+      card.className = "card done";
+
+      const badge = document.getElementById(`badge-${index}`);
+      badge.className = "badge badge-done";
+      badge.textContent = "Done";
+
+      const pointsHtml = data.key_points && data.key_points.length
+        ? `<p class="key-points-label">Key Points</p>
+           <ul class="key-points">${data.key_points.map(p => `<li>${escHtml(p)}</li>`).join("")}</ul>`
+        : "";
+
+      document.getElementById(`body-${index}`).innerHTML = `
+        <div class="card-title">${escHtml(data.title || "")}</div>
+        <p class="card-summary">${escHtml(data.summary || "")}</p>
+        ${pointsHtml}`;
+    }
+
+    function renderError(index, message) {
+      const card = cards[index];
+      if (!card) return;
+
+      card.className = "card error";
+
+      const badge = document.getElementById(`badge-${index}`);
+      badge.className = "badge badge-error";
+      badge.textContent = "Error";
+
+      document.getElementById(`body-${index}`).innerHTML =
+        `<p class="error-msg">${escHtml(message)}</p>`;
+    }
+
+    async function runSummarize() {
+      const urls = parseUrls(urlInput.value);
+      if (urls.length === 0) {
+        alert("Please enter at least one TikTok URL.");
+        return;
+      }
+
+      // Reset UI
+      Object.keys(cards).forEach(k => delete cards[k]);
+      resultsEl.innerHTML = "";
+      emptyState.style.display = "none";
+      submitBtn.disabled = true;
+      setStatus(`Processing 0 / ${urls.length}…`);
+
+      // Pre-create all cards so order is preserved
+      urls.forEach((url, i) => {
+        const card = createCard(url, i);
+        cards[i] = card;
+        resultsEl.appendChild(card);
+      });
+
+      let completed = 0;
+
+      const response = await fetch("/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urls }),
+      });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop(); // keep incomplete last line
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          let event;
+          try { event = JSON.parse(line.slice(6)); } catch { continue; }
+
+          if (event.type === "progress") {
+            updateStep(event.index, event.step);
+          } else if (event.type === "result") {
+            renderResult(event.index, event.data);
+            completed++;
+            setStatus(`Processing ${completed} / ${urls.length}…`);
+          } else if (event.type === "error") {
+            renderError(event.index, event.message);
+            completed++;
+            setStatus(`Processing ${completed} / ${urls.length}…`);
+          } else if (event.type === "done") {
+            setStatus(`Done — ${completed} video${completed !== 1 ? "s" : ""} summarized.`);
+          }
+        }
+      }
+
+      submitBtn.disabled = false;
+    }
+
+    submitBtn.addEventListener("click", runSummarize);
+
+    clearBtn.addEventListener("click", () => {
+      urlInput.value = "";
+      resultsEl.innerHTML = "";
+      resultsEl.appendChild(emptyState);
+      emptyState.style.display = "";
+      setStatus("");
+    });
+
+    urlInput.addEventListener("keydown", e => {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runSummarize();
+    });
+  </script>
+</body>
+</html>
